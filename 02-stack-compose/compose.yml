@@ -1,0 +1,87 @@
+services:
+  app1:
+    build: ./app1
+    image: node-app1
+    hostname: app1
+    # start app1_db before app1
+    # what if app1_db is not ready yet?
+    # depends_on:
+    #  - app1_db
+    # wait for app1_db to be ready before starting app1
+    depends_on:
+      app1_db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    # syntax for environment variables as a list
+    environment:
+      - DB_HOST=app1_db
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=app1db
+    networks:
+      - app1_net
+      - public_net
+  
+  app1_db:
+    hostname: app1_db
+    image: mysql:8.4
+    # syntax for environment variables as a mapping (dictionary / yaml object)
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: app1db
+    healthcheck:
+      # inside the container, mysqladmin is available
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      start_period: 20s
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - app1_db_data:/var/lib/mysql
+    networks:
+      app1_net:
+        aliases:
+          - app1_db
+
+  app2:
+    image: traefik/whoami
+    hostname: app2
+    ports:
+      - "127.0.0.1:3001:80"
+    networks:
+      - app2_net
+      - public_net
+
+  rproxy_nginx:
+    image: nginx:latest
+    hostname: rproxy_nginx
+    # TODO: add depends on for app1 and app2 
+    # (otherwise nginx may fail to start if config references services that are not up yet)
+    ports:
+      - "8080:80"
+      - "4443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      #- ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - public_net
+
+volumes:
+  app1_db_data:
+    name: app1_db_data
+    external: false
+
+networks:
+  app1_net:
+    name: app1_net
+    driver: bridge
+
+  app2_net:
+    name: app2_net
+    driver: bridge
+
+  public_net:
+    external: false
+    name: public_net
+    driver: bridge
