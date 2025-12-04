@@ -1,0 +1,15 @@
+FROM golang:1.24.11-alpine3.21 AS build
+WORKDIR /go/src/app
+COPY src/* .
+RUN go build -ldflags="-s" -o /app/server .
+
+# Créer un fichier passwd minimaliste
+RUN echo "appuser:x:10001:10001:App User:/:/sbin/nologin" > /etc/minimal-passwd
+
+FROM scratch
+COPY --from=build /app/server /server
+COPY --from=build /etc/minimal-passwd /etc/passwd
+
+USER appuser
+EXPOSE 8080
+ENTRYPOINT ["/server"]

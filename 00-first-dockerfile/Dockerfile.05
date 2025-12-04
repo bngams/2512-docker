@@ -1,0 +1,23 @@
+FROM golang:1.24.11-alpine3.21 AS build
+WORKDIR /go/src/app
+COPY src/* .
+RUN go build -ldflags="-s" -o /app/server ./main.go
+RUN go build -o /app/healthcheck ./healtchcheck.go
+
+# Créer un fichier passwd minimaliste
+RUN echo "appuser:x:10001:10001:App User:/:/sbin/nologin" > /etc/minimal-passwd
+
+FROM scratch
+COPY --from=build /app/server /server
+COPY --from=build /app/healthcheck /healthcheck
+COPY --from=build /etc/minimal-passwd /etc/passwd
+
+USER appuser
+
+# DOCUMENTATION du port d'ecoute de l'application
+EXPOSE 8080 
+
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+    CMD ["/healthcheck"]
+
+ENTRYPOINT ["/server"]
