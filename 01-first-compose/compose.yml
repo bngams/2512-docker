@@ -1,7 +1,23 @@
 services:
   web:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:5000"
   redis:
     image: "redis:alpine"
+    volumes:
+      - db-data:/data
+
+volumes:
+  db-data:
+    # we precise to create this volume as non-external (with compose)
+    # this is the default behavior
+    # /!\ docker compose down --volumes will remove this volume
+    external: false
+    # or we can use an external volume created outside of compose
+    # /!\ docker compose down will NOT remove this volume
+    # run docker volume create my-redis-2512-data to create it first
+    # external: true
+    # name: my-redis-2512-data
