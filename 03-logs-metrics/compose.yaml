@@ -1,0 +1,124 @@
+version: '3.8'
+
+
+services:
+  app1:
+    container_name: app1
+    image: traefik/whoami
+    ports:
+      - 5000:80
+    networks:
+      - obs
+      - web
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"  
+    # ou en mode driver (config local ou global)
+    # logging:
+    #  driver: loki # requires plugin installation
+    #  options:
+    #    ...
+ 
+  app2:
+    container_name: app2
+    image: traefik/whoami
+    ports:
+      - 5001:80
+    networks:
+      - obs
+      - web
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+      # labels traefik instead of ports....
+
+  # dependency: plugin loki driver
+  
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      # testing mode without account...
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    networks:
+      - obs
+      - web
+    # labels:
+    # - expose with traefik instead ports...
+
+  loki:
+    hostname: loki
+    image: grafana/loki:latest
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - obs
+
+  promtail:
+    image:  grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./config/promtail.yaml:/etc/promtail/docker-config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/docker-config.yaml
+    depends_on:
+      - loki
+    networks:
+      - obs
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    networks:
+      - obs
+  
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    networks:
+      - obs
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    expose:
+      - 8080
+    networks:
+      - obs
+
+
+networks:
+  obs:
+    name: obs
+  web:
+    name: web
