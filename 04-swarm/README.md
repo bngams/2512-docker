@@ -1,4 +1,4 @@
-# Créer le master
+# Créer le cluster
 # La machine host va servir de noeud master
 docker swarm init
 # (copier la commande join obtenue)
@@ -33,7 +33,7 @@ docker run -d --privileged --name worker-2 --hostname=worker-2 -p 22375:2375 doc
 docker exec -it worker-2 /bin/sh
 docker swarm join --token
 
-
+# Expérience simple: utiliser les commandes docker services 
 # Lancer un premier "container" à l'échelle du cluster
 docker service create --replicas 1 --name web -p 8080:80 nginx
 # lister les services
@@ -42,3 +42,6 @@ docker service ls
 docker service ps web 
 # mise à l'échelle manuelle
 docker service scale web=3
+
+# Expérience cluster avec une stack docker (compose.yml)
+https://docs.docker.com/engine/swarm/stack-deploy/
