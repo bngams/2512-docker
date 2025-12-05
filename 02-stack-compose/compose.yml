@@ -1,3 +1,7 @@
+# We can split our stack compose file into multiple files
+# Here we have a compose file for app1 only
+# include:
+#   - ./app1/compose.yml
 services:
   app1:
     build: ./app1
@@ -95,9 +99,11 @@ services:
       - "8080:80"
       - "8443:443"
       - "8888:8080" # Traefik dashboard
+    # Traefik has an entrypoint config in his dockerfile, we add command to override / extend it
     command:
       - "--api.insecure=true" # enable Traefik dashboard
       - "--providers.docker=true" # enable Docker provider (traefik reads labels from containers)
+    # allow Traefik to listen to Docker events
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro # allow Traefik to listen to Docker events
     networks:
