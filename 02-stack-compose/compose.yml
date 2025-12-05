@@ -15,6 +15,12 @@ services:
     # ports:
     #  - "127.0.0.1:3000:3000"
     # syntax for environment variables as a list
+    labels:
+      - "traefik.enable=true" # active l'exposition via Traefik
+      - "traefik.http.routers.app1.rule=PathPrefix(`/app1`)"  # règle de routage
+      - "traefik.http.services.app1.loadbalancer.server.url=http://app1:3000/"  # port interne exposé
+      # - "traefik.http.services.app1.loadbalancer.server.port=3000"  # port interne exposé
+      - "traefik.docker.network=public_net" # app1 on public_net
     environment:
       - DB_HOST=app1_db
       - DB_USER=root
@@ -44,10 +50,16 @@ services:
       app1_net:
         aliases:
           - app1_db
+          - mysql.db
 
   app2:
     image: traefik/whoami
     hostname: app2
+    labels:
+      - "traefik.enable=true" # active l'exposition via Traefik
+      - "traefik.http.routers.app2.rule=PathPrefix(`/app2`)"  # règle de routage
+      - "traefik.http.services.app2.loadbalancer.server.port=80"  # port interne exposé
+      - "traefik.docker.network=public_net" # app2 on public_net
     # if you want to expose app2 directly (not via reverse proxy)
     # ports:
     #   - "127.0.0.1:3001:80"
@@ -56,6 +68,7 @@ services:
       - public_net
 
   rproxy_nginx:
+    profiles: [nginx]
     image: nginx:latest
     hostname: rproxy_nginx
     # add depends on for app1 and app2 
@@ -72,6 +85,23 @@ services:
       #- ./nginx/certs:/etc/nginx/certs:ro
     networks:
       - public_net
+
+  rproxy_traefik:
+    profiles: [traefik]
+    image: traefik:2.9.10
+    hostname: rproxy_traefik
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "8888:8080" # Traefik dashboard
+    command:
+      - "--api.insecure=true" # enable Traefik dashboard
+      - "--providers.docker=true" # enable Docker provider (traefik reads labels from containers)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # allow Traefik to listen to Docker events
+    networks:
+      - public_net
+    
 
 volumes:
   app1_db_data:
