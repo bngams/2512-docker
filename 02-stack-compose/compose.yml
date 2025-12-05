@@ -18,8 +18,9 @@ services:
     labels:
       - "traefik.enable=true" # active l'exposition via Traefik
       - "traefik.http.routers.app1.rule=PathPrefix(`/app1`)"  # règle de routage
-      - "traefik.http.services.app1.loadbalancer.server.url=http://app1:3000/"  # port interne exposé
-      # - "traefik.http.services.app1.loadbalancer.server.port=3000"  # port interne exposé
+      - "traefik.http.routers.app1.middlewares=app1-stripprefix"  # applique le middleware
+      - "traefik.http.middlewares.app1-stripprefix.stripprefix.prefixes=/app1"  # retire /app1 du chemin
+      - "traefik.http.services.app1.loadbalancer.server.port=3000"  # port interne exposé
       - "traefik.docker.network=public_net" # app1 on public_net
     environment:
       - DB_HOST=app1_db
