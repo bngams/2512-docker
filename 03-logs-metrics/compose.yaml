@@ -4,9 +4,9 @@ version: '3.8'
 services:
   app1:
     container_name: app1
-    image: traefik/whoami
+    image: nginx:latest
     ports:
-      - 5000:80
+      - 5001:80
     networks:
       - obs
       - web
@@ -21,9 +21,9 @@ services:
  
   app2:
     container_name: app2
-    image: traefik/whoami
+    image: nginx:latest
     ports:
-      - 5001:80
+      - 5002:80
     networks:
       - obs
       - web
@@ -38,7 +38,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - 3000:3000
+      - 3003:3000
     volumes:
       - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
@@ -116,6 +116,32 @@ services:
     networks:
       - obs
 
+  telegraf:
+    profiles:
+      - influx
+    image: telegraf
+    hostname: telegraf
+    container_name: telegraf
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/telegraf.conf:/etc/telegraf/telegraf.conf
+    labels:
+      - "traefik.enable=false"
+
+  influxdb:
+    profiles:
+      - influx
+    image: influxdb
+    hostname: influxdb
+    container_name: influxdb
+    volumes:
+      - data_influxdb:/var/lib/influxdb
+    labels:
+      - "traefik.enable=false"
+
+volumes:
+  data_influxdb:
+    name: data_influxdb
 
 networks:
   obs:
