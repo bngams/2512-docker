@@ -1,0 +1,8 @@
+#! 0-04-swarm-namespace.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: 04-swarm
+    labels:
+        com.docker.compose.project: 04-swarm

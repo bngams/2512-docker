@@ -7,10 +7,12 @@
         - "8000:8000"
     redis:
       image: redis:alpine
+    #  replicas: 1
     # si on veut repliquer redis (en mode cluster)
     # on prévoit tous les réplicas / rôles redis ici
     # redis-replica-1:
     #   image: redis:alpine
     #   command: ["redis-server", "--slaveof", "redis", "6379"]
+    #   replicas: 2 
     # ....
     
